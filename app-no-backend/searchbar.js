@@ -36,7 +36,6 @@ function rank(searchValue, results){
         if(filteredNames.length > 0){
             let leftSlots = Math.min(filteredNames.length,results-aggregatedResult.length)
             aggregatedResult = aggregatedResult.concat(filteredNames.slice(0,leftSlots));
-
         }
         i++
     }
