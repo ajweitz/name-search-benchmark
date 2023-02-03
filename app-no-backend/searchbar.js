@@ -30,12 +30,12 @@ function rank(searchValue, results){
 
     let i = 0
     while (aggregatedResult.length <= results && i < expressions.length) {
-        let filteredNames = names.filter(name => {
-            return expressions[i].test(name);
+        let filteredWords = words.filter(word => {
+            return expressions[i].test(word);
         });
-        if(filteredNames.length > 0){
-            let leftSlots = Math.min(filteredNames.length,results-aggregatedResult.length)
-            aggregatedResult = aggregatedResult.concat(filteredNames.slice(0,leftSlots));
+        if(filteredWords.length > 0){
+            let leftSlots = Math.min(filteredWords.length,results-aggregatedResult.length)
+            aggregatedResult = aggregatedResult.concat(filteredWords.slice(0,leftSlots));
         }
         i++
     }
