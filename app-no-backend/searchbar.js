@@ -16,16 +16,30 @@ searchbar.addEventListener("keyup", function(event) {
 
 
 function getSuggestions(searchValue) {
-    let searchRegex = new RegExp(".*"+searchValue.split('').join('.*')+".*",'i')
-    console.log(searchRegex)
-    let filteredNames = names.filter(name => {
-        return searchRegex.test(name);
-      });
-
-    return rate(filteredNames)
+    return rank(searchValue, 5)
 }
 
-// Ideally, we would have some rating logic
-function rate(names){
-    return names.slice(0,5)
+// Search for best match
+function rank(searchValue, results){
+    let expressions = []
+    let aggregatedResult = []
+    // expressions based on most desirable matches
+    expressions.push(new RegExp("^"+searchValue+".*",'i')) // joh*
+    expressions.push(new RegExp(searchValue+".*",'i')) // *joh*
+    expressions.push(new RegExp(".*"+searchValue.split('').join('.*')+".*",'i')) // *j*o*h*
+
+    let i = 0
+    while (aggregatedResult.length <= results && i < expressions.length) {
+        let filteredNames = names.filter(name => {
+            return expressions[i].test(name);
+        });
+        if(filteredNames.length > 0){
+            let leftSlots = Math.min(filteredNames.length,results-aggregatedResult.length)
+            aggregatedResult = aggregatedResult.concat(filteredNames.slice(0,leftSlots));
+
+        }
+        i++
+    }
+
+    return aggregatedResult
 }
