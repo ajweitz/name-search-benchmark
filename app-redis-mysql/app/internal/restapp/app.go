@@ -1,7 +1,6 @@
 package restapp
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var mysql *mysql
+var db *MySql
 
 func errorResponse(w http.ResponseWriter, err error, errMessage string) {
 	log.Fatalf(errMessage)
@@ -21,50 +20,84 @@ func errorResponse(w http.ResponseWriter, err error, errMessage string) {
 	io.WriteString(w, "")
 }
 
-func getName(w http.ResponseWriter, r *http.Request) {
+func getWords(w http.ResponseWriter, r *http.Request) {
+
+}
+
+//
+func getWordsFromNonIndexed(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	searchTerm := r.URL.Query().Get("search")
 
-	rows, err := db.Query(`SELECT word FROM words WHERE word like ?`, searchTerm)
+	result, err := db.GetWordsFromNonIndexed(getSearchTerm(r))
 	if err != nil {
-		errorResponse(w, err, "select query")
-
-	}
-	results := make([]string, 0, 5)
-	if rows != nil {
-		for rows.Next() {
-			var name string
-			if err := rows.Scan(&name); err != nil {
-				errorResponse(w, err, "scanning rows")
-			}
-			results = append(results, name)
-		}
+		errorResponse(w, err, "getWordsFromNonIndexed")
 	}
 
-	resultsJSON, err := json.Marshal(results)
-	if err != nil {
-		errorResponse(w, err, "marshalling names to JSON")
-
-	}
 	w.Header().Set("Content-Type", "application/json")
-	io.WriteString(w, string(resultsJSON))
+	io.WriteString(w, result)
+
+	elapsed := time.Since(start)
+	log.Printf("Time elapsed: %v", elapsed)
+}
+
+//
+func getWordsFromSql(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	result, err := db.GetWords(getSearchTerm(r))
+	if err != nil {
+		errorResponse(w, err, "getWords")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, result)
 
 	elapsed := time.Since(start)
 	log.Printf("Time elapsed: %v", elapsed)
 
 }
 
+//
+func getWordsFromSqlAsync(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	result, err := db.GetWordsAsync(getSearchTerm(r))
+	if err != nil {
+		errorResponse(w, err, "getWordsAsync")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	io.WriteString(w, result)
+
+	elapsed := time.Since(start)
+	log.Printf("Time elapsed: %v", elapsed)
+
+}
+
+//
+func getWordsFromRedis(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	elapsed := time.Since(start)
+	log.Printf("Time elapsed: %v", elapsed)
+
+}
+
+func getSearchTerm(r *http.Request) string {
+	return r.URL.Query().Get("search")
+}
+
 func Run() {
 	var err error
-	mysql, err = NewMysql("dockeruser:dockerpass@tcp(localhost:3306)/words")
+	db, err = NewMySql("dockeruser:dockerpass@tcp(localhost:3306)/words")
 	if err != nil {
 		panic(err.Error())
 	}
-	defer mysql.DB.Close()
+	defer db.DB.Close()
 
-	http.HandleFunc("/mysql/get-name", getNameFromSql)
-	http.HandleFunc("/mysql/get-name-async", getNameFromSqlAsync)
-	http.HandleFunc("/redis/get-name-async", getName)
+	http.HandleFunc("/mysql/get-words", getWordsFromSql)
+	http.HandleFunc("/mysql/get-words-async", getWordsFromSqlAsync)
+	http.HandleFunc("/redis/get-words", getWordsFromRedis)
+	http.HandleFunc("/combo/get-words", getWords)
 
 	fmt.Printf("Listening on port 8080\n")
 	http.ListenAndServe(":8080", nil)
