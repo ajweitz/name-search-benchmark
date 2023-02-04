@@ -4,4 +4,6 @@
 
 in="../../data/$1.txt"
 out='words.txt'
+lowcase='lowcase.txt'
 cp $in $out
+tr '[:upper:]' '[:lower:]' < $out > $lowcase
