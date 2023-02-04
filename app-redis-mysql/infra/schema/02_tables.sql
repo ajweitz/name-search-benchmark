@@ -5,8 +5,7 @@ CREATE TABLE words (
   `word` varchar(255) NOT NULL,
   `parsed_word` varchar(255) NOT NULL,
   `length` int(10) NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX (`length`,`parsed_word`)
+  PRIMARY KEY (`id`)
 );
 
 
@@ -15,5 +14,6 @@ CREATE TABLE indexedwords (
   `word` varchar(255) NOT NULL,
   `parsed_word` varchar(255) NOT NULL,
   `length` int(10) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX (`length`,`parsed_word`)
 );

@@ -4,6 +4,10 @@
 
 in="../../data/$1.txt"
 out='words.txt'
-lowcase='lowcase.txt'
+# lowcase='lowcase.txt'
+# combined='data.csv'
 cp $in $out
-tr '[:upper:]' '[:lower:]' < $out > $lowcase
+# tr '[:upper:]' '[:lower:]' < $out > $lowcase
+# paste -d, $out $lowcase > $combined
+
+# rm $out $lowcase

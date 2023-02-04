@@ -3,7 +3,7 @@ package logic
 import "strings"
 
 func Rank(searchTerm string, words []string, max int) *[]string {
-	capacity := min(max, len(words))
+	capacity := Min(max, len(words))
 	top := make([]string, 0, capacity)
 	leftovers := []string{}
 
@@ -34,7 +34,7 @@ func Rank(searchTerm string, words []string, max int) *[]string {
 	return &top
 }
 
-func min(a int, b int) int {
+func Min(a int, b int) int {
 	if a > b {
 		return b
 	}

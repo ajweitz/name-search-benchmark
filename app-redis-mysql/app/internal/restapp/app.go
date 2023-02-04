@@ -13,8 +13,8 @@ import (
 var db *MySql
 
 func errorResponse(w http.ResponseWriter, err error, errMessage string) {
-	log.Fatalf(errMessage)
-	log.Fatalf("Error: %v", err)
+	log.Println(errMessage)
+	log.Printf("Error: %v\n", err)
 
 	w.WriteHeader(http.StatusInternalServerError)
 	io.WriteString(w, "")
@@ -94,6 +94,7 @@ func Run() {
 	}
 	defer db.DB.Close()
 
+	http.HandleFunc("/mysql/get-words-no-index", getWordsFromNonIndexed)
 	http.HandleFunc("/mysql/get-words", getWordsFromSql)
 	http.HandleFunc("/mysql/get-words-async", getWordsFromSqlAsync)
 	http.HandleFunc("/redis/get-words", getWordsFromRedis)

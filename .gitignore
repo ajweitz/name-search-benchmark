@@ -1,2 +1,3 @@
 .DS_Store
 app-redis-mysql/infra/*.txt
+app-redis-mysql/infra/*.csv
