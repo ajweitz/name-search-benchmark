@@ -12,4 +12,5 @@ services:
     ports:
       - 3306:3306
     volumes:
+      - ./words.txt:/var/lib/mysql-files/words.txt
       - ./schema:/docker-entrypoint-initdb.d
