@@ -6,13 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"sync"
 )
 
 type MySql struct {
 	DB         *sql.DB
 	MaxResults int
 	Table      string
+}
+
+type asyncResult struct {
+	result []string
+	err    error
 }
 
 func NewMySql(connectionString string, table string) (*MySql, error) {
@@ -41,14 +45,10 @@ func (s *MySql) GetWords(searchTerm string) (string, error) {
 			return "", err
 
 		}
-		// additionalResults = additionalResults[0:logic.Min(len(additionalResults), s.MaxResults-len(results))]
 		results = append(results, additionalResults...)
 	}
 
 	results = logic.Rank(searchTerm, results, s.MaxResults)
-
-	// results = results[0:logic.Min(len(results), s.MaxResults)]
-
 	return asJsonString(results)
 }
 
@@ -61,26 +61,26 @@ func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
 		log.Println("Error: DB Query Row")
 		return "", err
 	}
-	var wg sync.WaitGroup
-	resultsChan := make(chan []string, 10)
+	searchString := generateSearchString(searchTerm)
+	resultsChan := make(chan asyncResult, totalAsyncCalls)
+	defer close(resultsChan)
 	step := count / totalAsyncCalls
-	for i := 0; i < 10; i++ {
+	for i := 0; i < totalAsyncCalls; i++ {
 		start := i * step
 		end := start + step - 1
-		wg.Add(1)
-		statement := "SELECT name FROM %s WHERE name LIKE ? AND id BETWEEN ? AND ?"
-
-		go s.executeAsync(&wg, resultsChan, statement, start, end)
+		// wg.Add(1)
+		statement := "SELECT word FROM %s WHERE parsed_word LIKE ? AND id BETWEEN ? AND ?"
+		go s.executeAsync(resultsChan, statement, searchString, start, end)
 	}
-	go func() {
-		wg.Wait()
-		close(resultsChan)
-	}()
 
 	var results []string
-
-	for r := range resultsChan {
-		results = append(results, r...)
+	for i := 0; i < totalAsyncCalls; i++ {
+		asyncResult := <-resultsChan
+		if asyncResult.err != nil {
+			log.Println("Error async call")
+			return "", asyncResult.err
+		}
+		results = append(results, asyncResult.result...)
 	}
 	results = logic.Rank(searchTerm, results, s.MaxResults)
 	return asJsonString(results)
@@ -111,14 +111,14 @@ func (s *MySql) execute(statement string, args ...interface{}) ([]string, error)
 	return results, nil
 }
 
-func (s *MySql) executeAsync(wg *sync.WaitGroup, resultsChan chan<- []string, statement string, args ...interface{}) {
-	defer wg.Done()
+func (s *MySql) executeAsync(resultsChan chan<- asyncResult, statement string, args ...interface{}) {
 	results, err := s.execute(statement, args...)
 	if err != nil {
 		log.Println("Error: execute")
+		resultsChan <- asyncResult{err: err, result: nil}
 		return
 	}
-	resultsChan <- results
+	resultsChan <- asyncResult{err: nil, result: results}
 }
 
 func (s *MySql) getStartsWith(searchTerm string) ([]string, error) {
