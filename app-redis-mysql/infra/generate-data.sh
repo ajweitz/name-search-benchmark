@@ -4,10 +4,6 @@
 
 in="../../data/$1.txt"
 out='words.txt'
-# lowcase='lowcase.txt'
-# combined='data.csv'
-cp $in $out
-# tr '[:upper:]' '[:lower:]' < $out > $lowcase
-# paste -d, $out $lowcase > $combined
-
-# rm $out $lowcase
+temp="temp.txt"
+# Ensure each line is at-least 2 chars long
+grep -E '^.{2,}$' $in >$out
