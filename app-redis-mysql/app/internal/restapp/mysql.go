@@ -14,6 +14,7 @@ type MySql struct {
 	MaxResults    int
 	WordsTable    string
 	SubWordsTable string
+	cache         *Cache
 }
 
 type asyncResult struct {
@@ -21,7 +22,7 @@ type asyncResult struct {
 	err    error
 }
 
-func NewMySql(connectionString string, wordsTable string, subWordsTable string) (*MySql, error) {
+func NewMySql(connectionString string, wordsTable string, subWordsTable string, cache *Cache) (*MySql, error) {
 	db, err := sql.Open("mysql", connectionString)
 
 	return &MySql{
@@ -29,6 +30,7 @@ func NewMySql(connectionString string, wordsTable string, subWordsTable string) 
 		MaxResults:    5,
 		WordsTable:    wordsTable,
 		SubWordsTable: subWordsTable,
+		cache:         cache,
 	}, err
 }
 
@@ -212,11 +214,21 @@ func asJsonString(results []string) (string, error) {
 }
 
 func (s *MySql) getTableSize(table string) (int, error) {
-	// query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.WordsTable)
-	// err := s.DB.QueryRow(query).Scan(&count)
-	// if err != nil {
-	// 	log.Println("Error: DB Query Row")
-	// 	return -1, err
-	// }
-	return 1052733, nil
+	tableSizeKey := fmt.Sprintf("%sTableSize", table)
+	count, err := s.cache.GetInt(tableSizeKey)
+	if err != nil {
+		log.Println("Error: GetInt")
+		return -1, err
+	}
+
+	if count == -1 || err != nil {
+		query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.WordsTable)
+		err := s.DB.QueryRow(query).Scan(&count)
+		if err != nil {
+			log.Println("Error: DB Query Row")
+			return -1, err
+		}
+		s.cache.SetInt(tableSizeKey, count, time.Hour)
+	}
+	return count, nil
 }

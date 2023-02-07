@@ -10,21 +10,24 @@ import (
 type FetchController struct {
 	indexedDb *MySql
 	db        *MySql
+	cache     *Cache
 }
 
-func NewFetchController(connectionString string, indexedTable string, nonIndexedTable string, subStringsTable string) (*FetchController, error) {
+func NewFetchController(redisAddress string, connectionString string, indexedTable string, nonIndexedTable string, subStringsTable string) (*FetchController, error) {
+	cache, err := NewCache(redisAddress, "")
 	var indexedDb *MySql
-	db, err := NewMySql(connectionString, nonIndexedTable, subStringsTable)
+	db, err := NewMySql(connectionString, nonIndexedTable, subStringsTable, cache)
 	if err != nil {
 		return nil, err
 	}
-	indexedDb, err = NewMySql(connectionString, indexedTable, subStringsTable)
+	indexedDb, err = NewMySql(connectionString, indexedTable, subStringsTable, cache)
 	if err != nil {
 		return nil, err
 	}
 	return &FetchController{
 		indexedDb: indexedDb,
 		db:        db,
+		cache:     cache,
 	}, err
 }
 

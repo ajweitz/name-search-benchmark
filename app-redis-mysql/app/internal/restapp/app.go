@@ -9,7 +9,8 @@ import (
 
 func Run() {
 	connectionString := "dockeruser:dockerpass@tcp(localhost:3306)/words"
-	fetcher, err := NewFetchController(connectionString, "indexedwords", "words", "subwords")
+	redisAddress := "localhost:6379"
+	fetcher, err := NewFetchController(redisAddress, connectionString, "indexedwords", "words", "subwords")
 	if err != nil {
 		log.Println("Error: NewFetchController")
 		panic(err.Error())
