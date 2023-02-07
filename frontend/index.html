@@ -4,8 +4,22 @@
     <title>Sample Searchbar</title>
   </head>
   <body>
-    <input type="text" id="searchbar">
-    <div id="search-suggestions"></div>
+    <div id="only-frontend", class="searchblock">
+      <h2>Case 1: Only Frontend</h2>
+      <input type="text" class="searchbar">
+      <div class="suggestions"></div>
+      <h3>Query Performance</h3>
+      <div class="performance"></div>
+    </div>
+
+    <div id="dumb-backend", class="searchblock">
+      <h2>Case 2: Unindexed Table</h2>
+      <input type="text" class="searchbar">
+      <div class="suggestions"></div>
+      <h3>Query Performance</h3>
+      <div class="performance"></div>
+    </div>
+    
     <script type="text/javascript" src="words.js"></script>
     <script type="text/javascript" src="searchbar.js"></script>
   </body>
