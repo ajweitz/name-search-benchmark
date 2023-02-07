@@ -1,0 +1,24 @@
+/* body {
+    background-color: rgb(80, 91, 159);
+    color: #dedddd;
+} */
+
+.main-container {
+    width: 95%; 
+    margin: auto;
+}
+
+.searchblock {
+    padding-top: 2em;
+    border-bottom: 1px solid #000;
+}
+.performance {
+    padding-bottom: 1em;    
+}
+
+.slow {
+    color: rgb(200, 63, 63);
+}
+.fast {
+    color: green;
+}
