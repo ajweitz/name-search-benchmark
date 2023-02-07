@@ -15,6 +15,9 @@ type FetchController struct {
 
 func NewFetchController(redisAddress string, connectionString string, indexedTable string, nonIndexedTable string, subStringsTable string) (*FetchController, error) {
 	cache, err := NewCache(redisAddress, "")
+	if err != nil {
+		return nil, err
+	}
 	var indexedDb *MySql
 	db, err := NewMySql(connectionString, nonIndexedTable, subStringsTable, cache)
 	if err != nil {
