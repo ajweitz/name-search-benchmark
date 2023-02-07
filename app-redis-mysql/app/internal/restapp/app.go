@@ -9,7 +9,7 @@ import (
 
 func Run() {
 	connectionString := "dockeruser:dockerpass@tcp(localhost:3306)/words"
-	fetcher, err := NewFetchController(connectionString, "indexedwords", "words")
+	fetcher, err := NewFetchController(connectionString, "indexedwords", "words", "subwords")
 	if err != nil {
 		log.Println("Error: NewFetchController")
 		panic(err.Error())
@@ -20,6 +20,7 @@ func Run() {
 	http.HandleFunc("/mysql/get-words-no-index", fetcher.GetWordsFromNonIndexed) // from non-indexed table
 	http.HandleFunc("/mysql/get-words", fetcher.GetWordsFromSql)                 // from indexed table
 	http.HandleFunc("/mysql/get-words-async", fetcher.GetWordsFromSqlAsync)      // from indexed table, asynchronously
+	http.HandleFunc("/mysql/get-words-v2", fetcher.GetWordsFromSqlV2)            // from indexed table + indexed prefix table
 	http.HandleFunc("/redis/get-words", fetcher.GetWordsFromRedis)
 	http.HandleFunc("/combo/get-words", fetcher.GetWords)
 

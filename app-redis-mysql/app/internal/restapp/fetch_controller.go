@@ -12,13 +12,13 @@ type FetchController struct {
 	db        *MySql
 }
 
-func NewFetchController(connectionString string, indexedTable string, nonIndexedTable string) (*FetchController, error) {
+func NewFetchController(connectionString string, indexedTable string, nonIndexedTable string, subStringsTable string) (*FetchController, error) {
 	var indexedDb *MySql
-	db, err := NewMySql(connectionString, nonIndexedTable)
+	db, err := NewMySql(connectionString, nonIndexedTable, subStringsTable)
 	if err != nil {
 		return nil, err
 	}
-	indexedDb, err = NewMySql(connectionString, indexedTable)
+	indexedDb, err = NewMySql(connectionString, indexedTable, subStringsTable)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +42,13 @@ func (f *FetchController) GetWordsFromNonIndexed(w http.ResponseWriter, r *http.
 func (f *FetchController) GetWordsFromSql(w http.ResponseWriter, r *http.Request) {
 
 	f.getWordsCallback(w, r, "getWordsFromSql", f.indexedDb.GetWords)
+
+}
+
+// Get Results from indexed SQL Table + prefix table
+func (f *FetchController) GetWordsFromSqlV2(w http.ResponseWriter, r *http.Request) {
+
+	f.getWordsCallback(w, r, "GetWordsFromSqlV2", f.indexedDb.GetWordsPrefixTable)
 
 }
 

@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 type MySql struct {
-	DB         *sql.DB
-	MaxResults int
-	Table      string
+	DB            *sql.DB
+	MaxResults    int
+	WordsTable    string
+	SubWordsTable string
 }
 
 type asyncResult struct {
@@ -19,27 +21,28 @@ type asyncResult struct {
 	err    error
 }
 
-func NewMySql(connectionString string, table string) (*MySql, error) {
+func NewMySql(connectionString string, wordsTable string, subWordsTable string) (*MySql, error) {
 	db, err := sql.Open("mysql", connectionString)
 
 	return &MySql{
-		DB:         db,
-		MaxResults: 5,
-		Table:      table,
+		DB:            db,
+		MaxResults:    5,
+		WordsTable:    wordsTable,
+		SubWordsTable: subWordsTable,
 	}, err
 }
 
 func (s *MySql) GetWords(searchTerm string) (string, error) {
 	var additionalResults []string
-	results, err := s.getStartsWith(searchTerm)
+	results, err := s.prefixSearch(s.WordsTable, searchTerm, "parsed_word")
 	if err != nil {
 		log.Println("Error: getStartsWith")
 		return "", err
 	}
 	if len(results) < s.MaxResults {
 		searchString := generateSearchString(searchTerm)
-		statement := `SELECT word FROM %s WHERE length > ? AND parsed_word LIKE ? LIMIT 100`
-		additionalResults, err = s.execute(statement, len(searchTerm), searchString)
+		statement := `SELECT word FROM %s WHERE parsed_word LIKE ? LIMIT ?`
+		additionalResults, err = s.execute(s.WordsTable, statement, searchString, s.MaxResults)
 		if err != nil {
 			log.Println("Error: execute")
 			return "", err
@@ -52,13 +55,47 @@ func (s *MySql) GetWords(searchTerm string) (string, error) {
 	return asJsonString(results)
 }
 
-func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
-	var count int
-	var totalAsyncCalls = 10
-	query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.Table)
-	err := s.DB.QueryRow(query).Scan(&count)
+func (s *MySql) GetWordsPrefixTable(searchTerm string) (string, error) {
+
+	var additionalResults []string
+	results, err := s.prefixSearch(s.WordsTable, searchTerm, "parsed_word")
 	if err != nil {
-		log.Println("Error: DB Query Row")
+		log.Println("Error: prefixSearch")
+		return "", err
+	}
+	if len(results) < s.MaxResults {
+		additionalResults, err = s.prefixSearch(s.SubWordsTable, searchTerm, "subword")
+		if err != nil {
+			log.Println("Error: prefixSearch")
+			return "", err
+		}
+		results = append(results, additionalResults...)
+	}
+	if len(results) < s.MaxResults {
+		additionalResults, err = s.fuzzySearch(s.WordsTable, searchTerm, "parsed_word")
+		if err != nil {
+			log.Println("Error: fuzzySearch")
+			return "", err
+		}
+		results = append(results, additionalResults...)
+	}
+	if len(results) < s.MaxResults {
+		additionalResults, err = s.fuzzySearch(s.SubWordsTable, searchTerm, "subword")
+		if err != nil {
+			log.Println("Error: fuzzySearch")
+			return "", err
+		}
+		results = append(results, additionalResults...)
+	}
+	results = logic.Rank(searchTerm, results, s.MaxResults)
+	return asJsonString(results)
+}
+
+func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
+	var totalAsyncCalls = 10
+	count, err := s.getTableSize(s.WordsTable)
+	if err != nil {
+		log.Println("Error: getTableSize")
 		return "", err
 	}
 	searchString := generateSearchString(searchTerm)
@@ -68,9 +105,8 @@ func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
 	for i := 0; i < totalAsyncCalls; i++ {
 		start := i * step
 		end := start + step - 1
-		// wg.Add(1)
 		statement := "SELECT word FROM %s WHERE parsed_word LIKE ? AND id BETWEEN ? AND ?"
-		go s.executeAsync(resultsChan, statement, searchString, start, end)
+		go s.executeAsync(s.WordsTable, resultsChan, statement, searchString, start, end)
 	}
 
 	var results []string
@@ -90,8 +126,8 @@ func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
 // Helper functions
 ////////////////////
 
-func (s *MySql) execute(statement string, args ...interface{}) ([]string, error) {
-	statement = fmt.Sprintf(statement, s.Table)
+func (s *MySql) execute(table string, statement string, args ...interface{}) ([]string, error) {
+	statement = fmt.Sprintf(statement, table)
 	rows, err := s.DB.Query(statement, args...)
 	if err != nil {
 		log.Println("Error: DB Query")
@@ -111,8 +147,8 @@ func (s *MySql) execute(statement string, args ...interface{}) ([]string, error)
 	return results, nil
 }
 
-func (s *MySql) executeAsync(resultsChan chan<- asyncResult, statement string, args ...interface{}) {
-	results, err := s.execute(statement, args...)
+func (s *MySql) executeAsync(table string, resultsChan chan<- asyncResult, statement string, args ...interface{}) {
+	results, err := s.execute(table, statement, args...)
 	if err != nil {
 		log.Println("Error: execute")
 		resultsChan <- asyncResult{err: err, result: nil}
@@ -121,14 +157,30 @@ func (s *MySql) executeAsync(resultsChan chan<- asyncResult, statement string, a
 	resultsChan <- asyncResult{err: nil, result: results}
 }
 
-func (s *MySql) getStartsWith(searchTerm string) ([]string, error) {
+func (s *MySql) prefixSearch(table string, searchTerm string, columnName string) ([]string, error) {
 	searchString := searchTerm + "%"
-	statement := `SELECT word FROM %s WHERE parsed_word LIKE ? LIMIT ?`
-	results, err := s.execute(statement, searchString, s.MaxResults)
+
+	return s.search(table, searchString, columnName)
+}
+
+func (s *MySql) fuzzySearch(table string, searchTerm string, columnName string) ([]string, error) {
+	searchString := generateFuzzySearchString(searchTerm)
+
+	return s.search(table, searchString, columnName)
+}
+
+func (s *MySql) search(table string, searchString string, columnName string) ([]string, error) {
+	start := time.Now()
+
+	whereClause := fmt.Sprintf(`WHERE %s LIKE ? LIMIT ?`, columnName)
+	statement := `SELECT word FROM %s ` + whereClause
+	results, err := s.execute(table, statement, searchString, s.MaxResults)
 	if err != nil {
 		log.Println("Error: execute")
 		return nil, err
 	}
+	elapsed := time.Since(start)
+	log.Printf("Time elapsed for search string <%s> from table <%s> %v", searchString, table, elapsed)
 	return results, nil
 }
 
@@ -141,6 +193,14 @@ func generateSearchString(searchTerm string) string {
 	return searchString
 }
 
+func generateFuzzySearchString(searchTerm string) string {
+	searchString := ""
+	for _, char := range searchTerm {
+		searchString += string(char) + "%"
+	}
+	return searchString
+}
+
 func asJsonString(results []string) (string, error) {
 	resultsJSON, err := json.Marshal(results)
 	if err != nil {
@@ -149,4 +209,14 @@ func asJsonString(results []string) (string, error) {
 	}
 
 	return string(resultsJSON), nil
+}
+
+func (s *MySql) getTableSize(table string) (int, error) {
+	// query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.WordsTable)
+	// err := s.DB.QueryRow(query).Scan(&count)
+	// if err != nil {
+	// 	log.Println("Error: DB Query Row")
+	// 	return -1, err
+	// }
+	return 1052733, nil
 }
