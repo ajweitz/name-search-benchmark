@@ -2,24 +2,55 @@
 <html>
   <head>
     <title>Sample Searchbar</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
   </head>
   <body>
-    <div id="only-frontend", class="searchblock">
-      <h2>Case 1: Only Frontend</h2>
-      <input type="text" class="searchbar">
-      <div class="suggestions"></div>
-      <h3>Query Performance</h3>
-      <div class="performance"></div>
+    <div class="main-container">
+
+      <h1> Data Set: <span id="tableRows">123</span> Items</h1>
+
+      <div id="only-frontend", class="searchblock">
+        <h2>Case 1: Only Frontend</h2>
+        <input type="text" class="searchbar">
+        <div class="suggestions"></div>
+        <h3>Query Performance</h3>
+        <div class="performance"></div>
+      </div>
+
+      <div id="dumb-backend", class="searchblock">
+        <h2>Case 2: Unindexed Table</h2>
+        <input type="text" class="searchbar">
+        <div class="suggestions"></div>
+        <h3>Query Performance</h3>
+        <div class="performance"></div>
+      </div>
+
+      <div id="suggested-backend", class="searchblock">
+        <h2>Case 3: Indexed Table</h2>
+        <input type="text" class="searchbar">
+        <div class="suggestions"></div>
+        <h3>Query Performance</h3>
+        <div class="performance"></div>
+      </div>
+
+      <div id="async-backend", class="searchblock">
+        <h2>Case 4: Indexed Table With Async Queries</h2>
+        <input type="text" class="searchbar">
+        <div class="suggestions"></div>
+        <h3>Query Performance</h3>
+        <div class="performance"></div>
+      </div>
+
+      <div id="improved-backend", class="searchblock">
+        <h2>Case 5: Additional Indexed Prefix Table</h2>
+        <input type="text" class="searchbar">
+        <div class="suggestions"></div>
+        <h3>Query Performance</h3>
+        <div class="performance"></div>
+      </div>
+
     </div>
 
-    <div id="dumb-backend", class="searchblock">
-      <h2>Case 2: Unindexed Table</h2>
-      <input type="text" class="searchbar">
-      <div class="suggestions"></div>
-      <h3>Query Performance</h3>
-      <div class="performance"></div>
-    </div>
-    
     <script type="text/javascript" src="words.js"></script>
     <script type="text/javascript" src="searchbar.js"></script>
   </body>
