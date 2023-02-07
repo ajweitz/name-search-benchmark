@@ -78,6 +78,7 @@ func (f *FetchController) getWordsCallback(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	io.WriteString(w, result)
 
 	elapsed := time.Since(start)
