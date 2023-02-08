@@ -24,9 +24,9 @@ searchBarVersions = [
 
 
 searchBarVersions.forEach(function (element) {
-    let searchbar = document.querySelector("#" + element.id + " .searchbar");
-    let suggestionsContainer = document.querySelector("#" + element.id + " .suggestions");
-    let metricsContainer = document.querySelector("#" + element.id + " .performance");
+    let searchbar = document.querySelector(`#${element.id} .searchbar`);
+    let suggestionsContainer = document.querySelector(`#${element.id} .suggestions`);
+    let metricsContainer = document.querySelector(`#${element.id} .performance`);
 
     let timerId;
     element["count"] = 0
@@ -59,13 +59,24 @@ searchBarVersions.forEach(function (element) {
                 console.log(`impl: ${element.id}, search: ${searchValue}, time: ${timeInMs}`)
                 displayPerformanceMetrics(metricsContainer, element["average"], element["fast"], element["slow"])
             });
-
-
         }, 300);
     });
 });
 
+setTableRowsText("table-rows");
+setWordsLengthText("words-list-length");
 
+
+function setTableRowsText(spanId){
+    getTableRows((rows)=>{
+        var spanEl = document.querySelector(`#${spanId}`);
+        spanEl.innerText = rows.toLocaleString()
+    })
+}
+function setWordsLengthText(spanId){
+    var spanEl = document.querySelector(`#${spanId}`);
+        spanEl.innerText = words.length.toLocaleString()
+}
 function displaySearchResults(suggestionsDiv, suggestions) {
     suggestionsDiv.innerHTML = "";
     suggestions.forEach(suggestion => {
@@ -106,30 +117,38 @@ function localExecution(searchValue, callback) {
 
 // from a slow API
 function slowApi(searchValue, callback) {
-    getListFromApi(searchValue, "/mysql/get-words-no-index", callback)
+    getDataFromSearchApi(searchValue, "/mysql/get-words-no-index", callback)
 }
 
 // from an indexed table
 function indexedTable(searchValue, callback) {
-    getListFromApi(searchValue, "/mysql/get-words", callback)
+    getDataFromSearchApi(searchValue, "/mysql/get-words", callback)
 }
 
 // from an indexed table but queries performed in async manner
 function indexedTableAsyncCalls(searchValue, callback) {
-    getListFromApi(searchValue, "/mysql/get-words-async", callback)
+    getDataFromSearchApi(searchValue, "/mysql/get-words-async", callback)
 }
 
 // from an indexed table + indexed prefix table
 function prefixTable(searchValue, callback) {
-    getListFromApi(searchValue, "/mysql/get-words-v2", callback)
+    getDataFromSearchApi(searchValue, "/mysql/get-words-v2", callback)
 }
 
+// get total table rows in main table.
+function getTableRows(callback) {
+    fetch(`${backendApiAddress}/mysql/get-total-rows`)
+        .then(response => response.json())
+        .then(data => callback(data["rows"]))
+        .catch(error => console.error(error));
+    
+}
 
 ///////////////////////////////
 // Helper functions for search
 ///////////////////////////////
 
-function getListFromApi(searchValue, subPath, callback) {
+function getDataFromSearchApi(searchValue, subPath, callback) {
     if (searchValue == "") {
         callback([])
     } else {

@@ -22,8 +22,9 @@ func Run() {
 	http.HandleFunc("/mysql/get-words", fetcher.GetWordsFromSql)                 // from indexed table
 	http.HandleFunc("/mysql/get-words-async", fetcher.GetWordsFromSqlAsync)      // from indexed table, asynchronously
 	http.HandleFunc("/mysql/get-words-v2", fetcher.GetWordsFromSqlV2)            // from indexed table + indexed prefix table
-	http.HandleFunc("/redis/get-words", fetcher.GetWordsFromRedis)
-	http.HandleFunc("/combo/get-words", fetcher.GetWords)
+	http.HandleFunc("/mysql/get-total-rows", fetcher.GetRowsFromSqlTable)
+
+	http.HandleFunc("/redis/get-words", fetcher.GetWordsFromRedis) //not implemented
 
 	log.Println("Listening on port 8080")
 	http.ListenAndServe(":8080", nil)

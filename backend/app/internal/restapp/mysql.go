@@ -95,9 +95,9 @@ func (s *MySql) GetWordsPrefixTable(searchTerm string) (string, error) {
 
 func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
 	var totalAsyncCalls = 10
-	count, err := s.getTableSize(s.WordsTable)
+	count, err := s.GetTableSize(s.WordsTable)
 	if err != nil {
-		log.Println("Error: getTableSize")
+		log.Println("Error: GetTableSize")
 		return "", err
 	}
 	searchString := generateSearchString(searchTerm)
@@ -122,6 +122,26 @@ func (s *MySql) GetWordsAsync(searchTerm string) (string, error) {
 	}
 	results = logic.Rank(searchTerm, results, s.MaxResults)
 	return asJsonString(results)
+}
+
+func (s *MySql) GetTableSize(table string) (int, error) {
+	tableSizeKey := fmt.Sprintf("%sTableSize", table)
+	count, err := s.cache.GetInt(tableSizeKey)
+	if err != nil {
+		log.Println("Error: GetInt")
+		return -1, err
+	}
+
+	if count == -1 || err != nil {
+		query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.WordsTable)
+		err := s.DB.QueryRow(query).Scan(&count)
+		if err != nil {
+			log.Println("Error: DB Query Row")
+			return -1, err
+		}
+		s.cache.SetInt(tableSizeKey, count, time.Hour)
+	}
+	return count, nil
 }
 
 ////////////////////
@@ -211,24 +231,4 @@ func asJsonString(results []string) (string, error) {
 	}
 
 	return string(resultsJSON), nil
-}
-
-func (s *MySql) getTableSize(table string) (int, error) {
-	tableSizeKey := fmt.Sprintf("%sTableSize", table)
-	count, err := s.cache.GetInt(tableSizeKey)
-	if err != nil {
-		log.Println("Error: GetInt")
-		return -1, err
-	}
-
-	if count == -1 || err != nil {
-		query := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, s.WordsTable)
-		err := s.DB.QueryRow(query).Scan(&count)
-		if err != nil {
-			log.Println("Error: DB Query Row")
-			return -1, err
-		}
-		s.cache.SetInt(tableSizeKey, count, time.Hour)
-	}
-	return count, nil
 }

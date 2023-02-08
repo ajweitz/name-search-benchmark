@@ -1,6 +1,7 @@
 package restapp
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -61,7 +62,7 @@ func (f *FetchController) GetWordsFromSqlV2(w http.ResponseWriter, r *http.Reque
 // Get Results from indexed SQL Table Asynchronoulsy
 func (f *FetchController) GetWordsFromSqlAsync(w http.ResponseWriter, r *http.Request) {
 
-	f.getWordsCallback(w, r, "getWordsFromSqlAsync", f.indexedDb.GetWordsAsync)
+	f.getWordsCallback(w, r, "GetWordsFromSqlAsync", f.indexedDb.GetWordsAsync)
 }
 
 // Get Results by only using redis
@@ -70,6 +71,20 @@ func (f *FetchController) GetWordsFromRedis(w http.ResponseWriter, r *http.Reque
 	elapsed := time.Since(start)
 	log.Printf("Time elapsed: %v", elapsed)
 
+}
+
+// Get Table Size
+func (f *FetchController) GetRowsFromSqlTable(w http.ResponseWriter, r *http.Request) {
+
+	f.getWordsCallback(w, r, "GetRowsFromSqlTable", func(_ string) (string, error) {
+
+		size, err := f.indexedDb.GetTableSize(f.indexedDb.WordsTable)
+		if err != nil {
+			log.Println("Error: f.indexedDb.GetTableSize")
+			return "", err
+		}
+		return fmt.Sprintf(`{"rows": %d}`, size), nil
+	})
 }
 
 func (f *FetchController) getWordsCallback(w http.ResponseWriter, r *http.Request, funcName string, it func(string) (string, error)) {
