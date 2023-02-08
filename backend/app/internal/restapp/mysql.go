@@ -24,6 +24,7 @@ type asyncResult struct {
 
 func NewMySql(connectionString string, wordsTable string, subWordsTable string, cache *Cache) (*MySql, error) {
 	db, err := sql.Open("mysql", connectionString)
+	db.SetMaxOpenConns(150) //limit to 150 connections
 
 	return &MySql{
 		DB:            db,
@@ -155,6 +156,7 @@ func (s *MySql) execute(table string, statement string, args ...interface{}) ([]
 		log.Println("Error: DB Query")
 		return nil, err
 	}
+	defer rows.Close()
 	results := []string{}
 	if rows != nil {
 		for rows.Next() {

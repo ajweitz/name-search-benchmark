@@ -1,3 +1,4 @@
 .DS_Store
 app-redis-mysql/infra/*.txt
 app-redis-mysql/infra/*.csv
+__pycache__
